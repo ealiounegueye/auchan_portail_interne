@@ -1,0 +1,27 @@
+<div class="shell">
+  <header>
+    <a class="brand" routerLink="/">
+      <img class="brand-logo" src="assets/logo-auchan.png" alt="Auchan" />
+    </a>
+    <nav>
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Applications</a>
+      @if (auth.canManageAccess()) {
+        <a routerLink="/admin" routerLinkActive="active">{{ auth.isAdmin() ? 'Administration' : 'Équipe & accès' }}</a>
+      }
+    </nav>
+    <div class="user">
+      <span>
+        <strong>{{ auth.user()?.firstName }} {{ auth.user()?.lastName }}</strong>
+        <small>{{ auth.user()?.department }}</small>
+      </span>
+      <button type="button" (click)="auth.logout()">Déconnexion</button>
+    </div>
+  </header>
+  <main>
+    <router-outlet />
+  </main>
+  <footer>
+    <strong>Auchan</strong>
+    <span>Retail Sénégal</span>
+  </footer>
+</div>

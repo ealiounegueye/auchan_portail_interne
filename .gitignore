@@ -1,0 +1,11 @@
+**/target/
+**/node_modules/
+**/.angular/
+**/dist/
+**/.idea/
+**/.vscode/
+*.log
+.DS_Store
+data/
+*.mv.db
+*.trace.db

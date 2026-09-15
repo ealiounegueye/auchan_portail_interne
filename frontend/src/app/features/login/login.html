@@ -1,0 +1,36 @@
+<section class="login">
+  <aside class="brand">
+    <img class="logo" src="assets/logo-auchan-negatif-box.png" alt="Auchan" />
+    <p class="eyebrow">Auchan Sénégal</p>
+    <h1>Toutes vos applications internes, au même endroit.</h1>
+    <p class="lead">
+      Accédez au SIRH, à la caisse, à la supply, à la finance et aux outils DSI
+      depuis un portail unique pour les équipes internes.
+    </p>
+  </aside>
+
+  <form class="card" (ngSubmit)="submit()">
+    <p class="eyebrow">Connexion interne</p>
+    <h2>Bienvenue sur le portail</h2>
+    <label>
+      Email professionnel
+      <input name="email" type="email" [(ngModel)]="email" required autocomplete="username" />
+    </label>
+    <label>
+      Mot de passe
+      <input name="password" type="password" [(ngModel)]="password" required autocomplete="current-password" />
+    </label>
+    @if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+    <button type="submit" [disabled]="loading()">
+      {{ loading() ? 'Connexion…' : 'Entrer sur le portail' }}
+    </button>
+    <p class="hint">Mes acces Démo : admin@auchan.sn · responsable@auchan.sn · stagiaire@auchan.sn — mot de passe Auchan@2026</p>
+  </form>
+
+  <div class="brand-bar">
+    <strong>Auchan</strong>
+    <span>Retail Sénégal</span>
+  </div>
+</section>

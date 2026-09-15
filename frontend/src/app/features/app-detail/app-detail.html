@@ -1,0 +1,103 @@
+@if (loading()) {
+  <p class="empty">Chargement de la fiche application…</p>
+} @else if (error()) {
+  <section class="empty">
+    <p>{{ error() }}</p>
+    <a routerLink="/">Retour au catalogue</a>
+  </section>
+} @else if (app(); as item) {
+  <a class="back" routerLink="/">← Catalogue des applications</a>
+
+  <section class="hero">
+    <div class="identity">
+      <span class="icon" [class.has-logo]="!!item.logoUrl" [style.color]="item.logoUrl ? null : item.category.color">
+        <app-mark [icon]="item.icon" [logoUrl]="item.logoUrl" [alt]="item.name" />
+      </span>
+      <div>
+        <p class="eyebrow">{{ item.category.name }}</p>
+        <h1>{{ item.name }}</h1>
+        <p>{{ item.description }}</p>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <button type="button" class="fav" [class.on]="item.favorite" (click)="toggleFavorite()">
+        <app-icon name="star" />
+        {{ item.favorite ? 'Retirer des favoris' : 'Ajouter aux favoris' }}
+      </button>
+      @if (auth.isAdmin()) {
+        <a class="edit" [routerLink]="['/admin']" [queryParams]="{ editApp: item.id }">Modifier l’application</a>
+      }
+      <a class="open" [href]="item.url" target="_blank" rel="noopener">Ouvrir l’application</a>
+    </div>
+  </section>
+
+  <section class="layout">
+    <article class="panel">
+      <h2>Présentation</h2>
+      <p>{{ item.longDescription || item.description }}</p>
+      @if (item.audience) {
+        <p class="audience"><strong>Public concerné :</strong> {{ item.audience }}</p>
+      }
+    </article>
+
+    <aside>
+      <article class="panel">
+        <h2>Informations</h2>
+        <dl>
+          <div><dt>Direction</dt><dd>{{ item.ownerDepartment }}</dd></div>
+          <div><dt>Statut</dt><dd>{{ item.status }}</dd></div>
+          @if (item.version) {
+            <div><dt>Version</dt><dd>{{ item.version }}</dd></div>
+          }
+          @if (item.supportContact) {
+            <div><dt>Support</dt><dd>{{ item.supportContact }}</dd></div>
+          }
+        </dl>
+      </article>
+    </aside>
+  </section>
+
+  <section class="resources">
+    <h2>Documentation et ressources</h2>
+    @if (downloadMessage()) {
+      <p class="download-flash">{{ downloadMessage() }}</p>
+    }
+    @if (resources().length === 0 && !item.supportUrl) {
+      <p>Vous n’avez pas accès au MODOP ni à la fiche technique de cette application.</p>
+    }
+    <div class="grid">
+      @for (resource of resources(); track resource.kind) {
+        <article class="resource">
+          <span class="icon">
+            <app-icon [name]="resource.icon" />
+          </span>
+          <span class="resource-body">
+            <strong>{{ resource.name }}</strong>
+            <small>{{ resource.hint }}</small>
+            <span class="doc-actions">
+              <button type="button" (click)="download(resource.kind, 'html')">HTML</button>
+              <button type="button" class="primary" (click)="download(resource.kind, 'pdf')">PDF</button>
+              @if (resource.fileName) {
+                <button type="button" class="file" (click)="downloadFile(resource.kind)">{{ resource.fileName }}</button>
+              }
+              @if (resource.externalUrl) {
+                <a [href]="resource.externalUrl" target="_blank" rel="noopener">Lien externe</a>
+              }
+            </span>
+          </span>
+        </article>
+      }
+      @if (item.supportUrl) {
+        <a class="resource" [href]="item.supportUrl" target="_blank" rel="noopener">
+          <span class="icon">
+            <app-icon name="headset" />
+          </span>
+          <span>
+            <strong>Support / Service Desk</strong>
+            <small>{{ item.supportContact || 'Ouvrir un ticket informatique' }}</small>
+          </span>
+        </a>
+      }
+    </div>
+  </section>
+}

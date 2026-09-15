@@ -1,0 +1,81 @@
+<section class="hero">
+  <div>
+    <p class="eyebrow">Portail interne</p>
+    <h1>Retrouvez toutes nos applications Auchan</h1>
+    <p>Recherchez, filtrez par métier et ouvrez l’outil dont vous avez besoin.</p>
+  </div>
+  <form class="search" (ngSubmit)="search()">
+    <app-icon name="search" />
+    <input
+      name="q"
+      [ngModel]="query()"
+      (ngModelChange)="onQueryChange($event)"
+      placeholder="Rechercher une application, un métier..."
+      autocomplete="off"
+    />
+    <button type="submit">Rechercher</button>
+  </form>
+</section>
+
+<section class="layout">
+  <aside>
+    <button type="button" [class.active]="selectedCategory() === null" (click)="selectCategory(null)">Toutes</button>
+    @for (category of categories(); track category.id) {
+      <button type="button" [class.active]="selectedCategory() === category.id" (click)="selectCategory(category.id)">
+        <span class="dot" [style.background]="category.color"></span>
+        {{ category.name }}
+      </button>
+    }
+    <button type="button" [class.active]="onlyFavorites()" (click)="onlyFavorites.set(!onlyFavorites())">
+      Mes favoris
+    </button>
+  </aside>
+
+  <div>
+    @if (!loading() && catalog().length > 0) {
+      <p class="result-count">
+        {{ visibleApps().length }} application{{ visibleApps().length > 1 ? 's' : '' }}
+        @if (selectedCategory() || onlyFavorites() || query().trim()) {
+          sur {{ catalog().length }}
+        }
+      </p>
+    }
+    @if (loading()) {
+      <p class="empty">Chargement des applications…</p>
+    } @else if (visibleApps().length === 0) {
+      <p class="empty">{{ emptyMessage() }}</p>
+    } @else {
+      <div class="grid">
+        @for (app of visibleApps(); track app.id) {
+          <article class="card" [class.featured]="app.featured">
+            <div class="top">
+              <a
+                class="icon"
+                [class.has-logo]="!!app.logoUrl"
+                [routerLink]="['/apps', app.id]"
+                [style.color]="app.logoUrl ? null : app.category.color"
+              >
+                <app-mark [icon]="app.icon" [logoUrl]="app.logoUrl" [alt]="app.name" />
+              </a>
+              <button type="button" class="fav" [class.on]="app.favorite" (click)="toggleFavorite(app, $event)">
+                <app-icon name="star" />
+              </button>
+            </div>
+            <a class="card-main" [routerLink]="['/apps', app.id]">
+              <h2>{{ app.name }}</h2>
+              <p>{{ app.description }}</p>
+            </a>
+            <div class="meta">
+              <span>{{ app.category.name }}</span>
+              <span>{{ app.ownerDepartment }}</span>
+            </div>
+            <div class="card-actions">
+              <a class="more" [routerLink]="['/apps', app.id]">Voir plus</a>
+              <a class="open" [href]="app.url" target="_blank" rel="noopener">Ouvrir</a>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+</section>

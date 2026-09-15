@@ -1,0 +1,48 @@
+:root {
+  --auchan-red: #e0001a;
+  --auchan-red-dark: #c40016;
+  --auchan-red-soft: #fce6e8;
+  --auchan-green: #00985f;
+  --auchan-green-dark: #007a4c;
+  --auchan-green-soft: #e6f5ef;
+  --ink: #161616;
+  --muted: #5b5b5b;
+  --line: #e6e6e6;
+  --paper: #f5f5f5;
+  --chip: #f3f3f3;
+  --card: #ffffff;
+  --shadow: 0 18px 40px rgba(22, 22, 22, 0.08);
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Manrope, "Segoe UI", sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+img {
+  max-width: 100%;
+}
