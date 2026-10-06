@@ -25,111 +25,144 @@
   }
 
   @if (tab() === 'apps' && auth.isAdmin()) {
-    <div class="split">
-        <form id="app-form" novalidate (ngSubmit)="saveApp()">
-        <h2>{{ editingAppId ? 'Modifier une application' : 'Ajouter une application' }}</h2>
-        <label>Nom <input name="name" [(ngModel)]="appForm.name" required /></label>
-        <label>Description <textarea name="description" [(ngModel)]="appForm.description" required></textarea></label>
-        <label>URL <input name="url" [(ngModel)]="appForm.url" required /></label>
-        <label>
-          Logo
-          <input name="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" (change)="onLogoFile($event)" />
-        </label>
-        @if (logoSrc()) {
-          <div class="logo-preview">
-            <img [src]="logoSrc()" alt="Aperçu du logo" />
-            <button type="button" class="ghost" (click)="clearLogo()">Retirer le logo</button>
-          </div>
-        }
-        <p class="hint">Importez le logo de l’outil (Sage X3, SIRH, etc.). Sans logo, l’icône ci-dessous est affichée.</p>
-        <label>Icône <input name="icon" [(ngModel)]="appForm.icon" placeholder="monitor, wallet, truck…" /></label>
-        <label>
-          Catégorie
-          <select name="categoryId" [(ngModel)]="appForm.categoryId">
-            @for (category of categories(); track category.id) {
-              <option [ngValue]="category.id">{{ category.name }}</option>
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>Applications</h2>
+          <p class="hint list-hint">
+            @if (canReorderApps()) {
+              Glissez une application ou utilisez les flèches pour changer l’ordre d’affichage.
+            } @else {
+              Filtrez la liste, puis videz la recherche pour réordonner les applications.
             }
-          </select>
-        </label>
-        <label>
-          Direction
-          <select name="ownerDepartment" [(ngModel)]="appForm.ownerDepartment">
-            @for (department of departments(); track department.id) {
-              <option [ngValue]="department.name">{{ department.name }}</option>
-            }
-          </select>
-        </label>
-        <label>Description longue <textarea name="longDescription" [(ngModel)]="appForm.longDescription"></textarea></label>
-        <p class="hint">Rédigez le texte et/ou importez un fichier (PDF, Word, Excel…). Le portail peut toujours générer HTML/PDF à partir du texte. Les liens externes restent optionnels.</p>
-        <label>Mode opératoire (MODOP)
-          <textarea name="modop" class="tall" [(ngModel)]="appForm.modop" placeholder="1. Objet&#10;2. Conditions préalables&#10;- …&#10;3. Déroulement&#10;- …"></textarea>
-        </label>
-        <label>Fichier MODOP
-          <input name="modopFile" type="file" [accept]="documentAccept" (change)="onDocumentFile($event, 'documentation')" />
-        </label>
-        @if (appForm.documentationFileName) {
-          <div class="file-chip">
-            <span>{{ appForm.documentationFileName }}</span>
-            <button type="button" class="ghost" (click)="clearDocumentFile('documentation')">Retirer</button>
-          </div>
+          </p>
+        </div>
+        @if (!appFormOpen()) {
+          <button type="button" class="add-btn" (click)="startAddApp()">Ajouter une application</button>
         }
-        <label>Fiche technique
-          <textarea name="technicalSheetContent" class="tall" [(ngModel)]="appForm.technicalSheetContent"></textarea>
-        </label>
-        <label>Fichier fiche technique
-          <input name="technicalSheetFile" type="file" [accept]="documentAccept" (change)="onDocumentFile($event, 'fiche-technique')" />
-        </label>
-        @if (appForm.technicalSheetFileName) {
-          <div class="file-chip">
-            <span>{{ appForm.technicalSheetFileName }}</span>
-            <button type="button" class="ghost" (click)="clearDocumentFile('fiche-technique')">Retirer</button>
-          </div>
-        }
-        <label>Guide utilisateur
-          <textarea name="userGuideContent" class="tall" [(ngModel)]="appForm.userGuideContent"></textarea>
-        </label>
-        <label>Fichier guide
-          <input name="userGuideFile" type="file" [accept]="documentAccept" (change)="onDocumentFile($event, 'guide')" />
-        </label>
-        @if (appForm.userGuideFileName) {
-          <div class="file-chip">
-            <span>{{ appForm.userGuideFileName }}</span>
-            <button type="button" class="ghost" (click)="clearDocumentFile('guide')">Retirer</button>
-          </div>
-        }
-        <label>Lien externe MODOP <input name="documentationUrl" [(ngModel)]="appForm.documentationUrl" /></label>
-        <label>Lien externe fiche technique <input name="technicalSheetUrl" [(ngModel)]="appForm.technicalSheetUrl" /></label>
-        <label>Lien externe guide <input name="userGuideUrl" [(ngModel)]="appForm.userGuideUrl" /></label>
-        <label>URL support <input name="supportUrl" [(ngModel)]="appForm.supportUrl" /></label>
-        <label>Contact support <input name="supportContact" [(ngModel)]="appForm.supportContact" /></label>
-        <label>Version <input name="version" [(ngModel)]="appForm.version" /></label>
-        <label>Public concerné <input name="audience" [(ngModel)]="appForm.audience" /></label>
+      </div>
+
+      <div class="toolbar">
+        <input
+          type="search"
+          name="appQuery"
+          [ngModel]="appQuery()"
+          (ngModelChange)="onAppQuery($event)"
+          placeholder="Rechercher une application, une catégorie..."
+          autocomplete="off"
+        />
+        <p class="result-count">
+          {{ filteredApps().length }} application{{ filteredApps().length > 1 ? 's' : '' }}
+        </p>
+      </div>
+
+      @if (appFormOpen()) {
+        <form id="app-form" class="reveal" novalidate (ngSubmit)="saveApp()">
+          <h2>{{ editingAppId ? 'Modifier une application' : 'Ajouter une application' }}</h2>
+          <label>Nom <input name="name" [(ngModel)]="appForm.name" required /></label>
+          <label>Description <textarea name="description" [(ngModel)]="appForm.description" required></textarea></label>
+          <label>URL <input name="url" [(ngModel)]="appForm.url" required /></label>
+          <label>
+            Logo
+            <input name="logoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" (change)="onLogoFile($event)" />
+          </label>
+          @if (logoSrc()) {
+            <div class="logo-preview">
+              <img [src]="logoSrc()" alt="Aperçu du logo" />
+              <button type="button" class="ghost" (click)="clearLogo()">Retirer le logo</button>
+            </div>
+          }
+          <p class="hint">Importez le logo de l’outil (Sage X3, SIRH, etc.). Sans logo, l’icône ci-dessous est affichée.</p>
+          <label>Icône <input name="icon" [(ngModel)]="appForm.icon" placeholder="monitor, wallet, truck…" /></label>
+          <label>
+            Catégorie
+            <select name="categoryId" [(ngModel)]="appForm.categoryId">
+              @for (category of categories(); track category.id) {
+                <option [ngValue]="category.id">{{ category.name }}</option>
+              }
+            </select>
+          </label>
+          <label>
+            Direction
+            <select name="ownerDepartment" [(ngModel)]="appForm.ownerDepartment">
+              @for (department of departments(); track department.id) {
+                <option [ngValue]="department.name">{{ department.name }}</option>
+              }
+            </select>
+          </label>
+          <label>Description longue <textarea name="longDescription" [(ngModel)]="appForm.longDescription"></textarea></label>
+          <p class="hint">Par défaut, le portail génère le MODOP, la fiche technique et le guide. Si vous importez un fichier, c’est ce fichier qui est téléchargé : il remplace le document généré. Les liens externes restent optionnels.</p>
+          <label>Mode opératoire (MODOP)
+            <textarea name="modop" class="tall" [(ngModel)]="appForm.modop" placeholder="1. Objet&#10;2. Conditions préalables&#10;- …&#10;3. Déroulement&#10;- …"></textarea>
+          </label>
+          <label>Fichier MODOP
+            <input name="modopFile" type="file" [accept]="documentAccept" (change)="onDocumentFile($event, 'documentation')" />
+          </label>
+          @if (appForm.documentationFileName) {
+            <div class="file-chip">
+              <span>{{ appForm.documentationFileName }} — remplace le MODOP généré</span>
+              <button type="button" class="ghost" (click)="clearDocumentFile('documentation')">Retirer</button>
+            </div>
+          }
+          <label>Fiche technique
+            <textarea name="technicalSheetContent" class="tall" [(ngModel)]="appForm.technicalSheetContent"></textarea>
+          </label>
+          <label>Fichier fiche technique
+            <input name="technicalSheetFile" type="file" [accept]="documentAccept" (change)="onDocumentFile($event, 'fiche-technique')" />
+          </label>
+          @if (appForm.technicalSheetFileName) {
+            <div class="file-chip">
+              <span>{{ appForm.technicalSheetFileName }} — remplace la fiche générée</span>
+              <button type="button" class="ghost" (click)="clearDocumentFile('fiche-technique')">Retirer</button>
+            </div>
+          }
+          <label>Guide utilisateur
+            <textarea name="userGuideContent" class="tall" [(ngModel)]="appForm.userGuideContent"></textarea>
+          </label>
+          <label>Fichier guide
+            <input name="userGuideFile" type="file" [accept]="documentAccept" (change)="onDocumentFile($event, 'guide')" />
+          </label>
+          @if (appForm.userGuideFileName) {
+            <div class="file-chip">
+              <span>{{ appForm.userGuideFileName }} — remplace le guide généré</span>
+              <button type="button" class="ghost" (click)="clearDocumentFile('guide')">Retirer</button>
+            </div>
+          }
+          <label>Lien externe MODOP <input name="documentationUrl" [(ngModel)]="appForm.documentationUrl" /></label>
+          <label>Lien externe fiche technique <input name="technicalSheetUrl" [(ngModel)]="appForm.technicalSheetUrl" /></label>
+          <label>Lien externe guide <input name="userGuideUrl" [(ngModel)]="appForm.userGuideUrl" /></label>
+          <label>URL support <input name="supportUrl" [(ngModel)]="appForm.supportUrl" /></label>
+          <label>Contact support <input name="supportContact" [(ngModel)]="appForm.supportContact" /></label>
+          <label>Version <input name="version" [(ngModel)]="appForm.version" /></label>
+          <label>Public concerné <input name="audience" [(ngModel)]="appForm.audience" /></label>
           <label class="check">
             <input type="checkbox" name="featured" [(ngModel)]="appForm.featured" />
             Application mise en avant
           </label>
           <div class="form-actions">
             <button type="submit" [disabled]="logoUploading() || documentUploading()">{{ busyLabel() }}</button>
-            @if (editingAppId) {
-              <button type="button" class="ghost" (click)="cancelApp()">Annuler</button>
-            }
+            <button type="button" class="ghost" (click)="cancelApp()">Annuler</button>
           </div>
         </form>
+      }
 
-        <div class="list">
-          <p class="hint list-hint">Glissez une application ou utilisez les flèches pour changer l’ordre d’affichage.</p>
-          @for (app of apps(); track app.id; let i = $index) {
+      <div class="list">
+          @if (pagedApps().length === 0) {
+            <p class="empty-list">Aucune application ne correspond à votre recherche.</p>
+          }
+          @for (app of pagedApps(); track app.id) {
             <article
               class="sortable"
-              draggable="true"
-              [class.dragging]="draggingAppIndex() === i"
-              [class.drag-over]="dropAppTargetIndex() === i && draggingAppIndex() !== i"
-              (dragstart)="onAppDragStart($event, i)"
-              (dragover)="onAppDragOver($event, i)"
-              (dragleave)="onAppDragLeave(i)"
-              (drop)="onAppDrop($event, i)"
+              [class.editing]="editingAppId === app.id"
+              [attr.draggable]="canReorderApps()"
+              [class.dragging]="draggingAppIndex() === appIndex(app)"
+              [class.drag-over]="dropAppTargetIndex() === appIndex(app) && draggingAppIndex() !== appIndex(app)"
+              (dragstart)="onAppDragStart($event, appIndex(app))"
+              (dragover)="onAppDragOver($event, appIndex(app))"
+              (dragleave)="onAppDragLeave(appIndex(app))"
+              (drop)="onAppDrop($event, appIndex(app))"
               (dragend)="onAppDragEnd()">
-              <span class="drag-handle" aria-hidden="true" title="Glisser pour réordonner">
+              <span class="drag-handle" [class.off]="!canReorderApps()" aria-hidden="true" title="Glisser pour réordonner">
                 <span></span>
                 <span></span>
                 <span></span>
@@ -147,16 +180,16 @@
                 <button
                   type="button"
                   class="order-btn"
-                  [disabled]="i === 0"
-                  (click)="moveApp(i, -1)"
+                  [disabled]="!canReorderApps() || appIndex(app) === 0"
+                  (click)="moveApp(appIndex(app), -1)"
                   [attr.aria-label]="'Monter ' + app.name">
                   ↑
                 </button>
                 <button
                   type="button"
                   class="order-btn"
-                  [disabled]="i === apps().length - 1"
-                  (click)="moveApp(i, 1)"
+                  [disabled]="!canReorderApps() || appIndex(app) === apps().length - 1"
+                  (click)="moveApp(appIndex(app), 1)"
                   [attr.aria-label]="'Descendre ' + app.name">
                   ↓
                 </button>
@@ -168,34 +201,43 @@
               </div>
             </article>
           }
+          <app-pager [page]="appCurrentPage()" [pages]="appPageCount()" (go)="appPage.set($event)" />
         </div>
-    </div>
+    </section>
   }
 
   @if (tab() === 'catalog' && auth.isAdmin()) {
     <div class="catalog-grid">
-      <div class="split">
-        <form novalidate (ngSubmit)="saveCategory()">
-          <h2>{{ editingCategoryId ? 'Modifier une catégorie' : 'Ajouter une catégorie' }}</h2>
-          <label>Nom <input name="categoryName" [(ngModel)]="categoryForm.name" /></label>
-          <label>Slug <input name="categorySlug" [(ngModel)]="categoryForm.slug" placeholder="Généré automatiquement si vide" /></label>
-          <label>Icône <input name="categoryIcon" [(ngModel)]="categoryForm.icon" placeholder="users, wallet, truck…" /></label>
-          <label class="color-field">
-            Couleur
-            <span>
-              <input name="categoryColorPicker" type="color" [ngModel]="categoryForm.color" [ngModelOptions]="{standalone: true}" (ngModelChange)="categoryForm.color = $event" />
-              <input name="categoryColor" [(ngModel)]="categoryForm.color" />
-            </span>
-          </label>
-          <div class="form-actions">
-            <button type="submit">Enregistrer</button>
-            @if (editingCategoryId) {
-              <button type="button" class="ghost" (click)="cancelCategory()">Annuler</button>
-            }
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <h2>Catégories</h2>
+            <p class="hint list-hint">Glissez une catégorie ou utilisez les flèches pour changer l’ordre d’affichage.</p>
           </div>
-        </form>
+          @if (!categoryFormOpen()) {
+            <button type="button" class="add-btn" (click)="startAddCategory()">Ajouter une catégorie</button>
+          }
+        </div>
+        @if (categoryFormOpen()) {
+          <form id="category-form" class="reveal" novalidate (ngSubmit)="saveCategory()">
+            <h2>{{ editingCategoryId ? 'Modifier une catégorie' : 'Ajouter une catégorie' }}</h2>
+            <label>Nom <input name="categoryName" [(ngModel)]="categoryForm.name" /></label>
+            <label>Slug <input name="categorySlug" [(ngModel)]="categoryForm.slug" placeholder="Généré automatiquement si vide" /></label>
+            <label>Icône <input name="categoryIcon" [(ngModel)]="categoryForm.icon" placeholder="users, wallet, truck…" /></label>
+            <label class="color-field">
+              Couleur
+              <span>
+                <input name="categoryColorPicker" type="color" [ngModel]="categoryForm.color" [ngModelOptions]="{standalone: true}" (ngModelChange)="categoryForm.color = $event" />
+                <input name="categoryColor" [(ngModel)]="categoryForm.color" />
+              </span>
+            </label>
+            <div class="form-actions">
+              <button type="submit">Enregistrer</button>
+              <button type="button" class="ghost" (click)="cancelCategory()">Annuler</button>
+            </div>
+          </form>
+        }
         <div class="list">
-          <p class="hint list-hint">Glissez une catégorie ou utilisez les flèches pour changer l’ordre d’affichage.</p>
           @for (category of categories(); track category.id; let i = $index) {
             <article
               class="sortable"
@@ -242,22 +284,28 @@
             </article>
           }
         </div>
-      </div>
+      </section>
 
-      <div class="split">
-        <form novalidate (ngSubmit)="saveDepartment()">
-          <h2>{{ editingDepartmentId ? 'Modifier une direction' : 'Ajouter une direction' }}</h2>
-          <label>Nom <input name="departmentName" [(ngModel)]="departmentForm.name" /></label>
-          <label>Code <input name="departmentCode" [(ngModel)]="departmentForm.code" placeholder="DSI, RH, FIN…" /></label>
-          <label>Description <textarea name="departmentDescription" [(ngModel)]="departmentForm.description"></textarea></label>
-          <label>Ordre <input name="departmentOrder" type="number" [(ngModel)]="departmentForm.sortOrder" /></label>
-          <div class="form-actions">
-            <button type="submit">Enregistrer</button>
-            @if (editingDepartmentId) {
+      <section class="section">
+        <div class="section-head">
+          <h2>Directions</h2>
+          @if (!departmentFormOpen()) {
+            <button type="button" class="add-btn" (click)="startAddDepartment()">Ajouter une direction</button>
+          }
+        </div>
+        @if (departmentFormOpen()) {
+          <form id="department-form" class="reveal" novalidate (ngSubmit)="saveDepartment()">
+            <h2>{{ editingDepartmentId ? 'Modifier une direction' : 'Ajouter une direction' }}</h2>
+            <label>Nom <input name="departmentName" [(ngModel)]="departmentForm.name" /></label>
+            <label>Code <input name="departmentCode" [(ngModel)]="departmentForm.code" placeholder="DSI, RH, FIN…" /></label>
+            <label>Description <textarea name="departmentDescription" [(ngModel)]="departmentForm.description"></textarea></label>
+            <label>Ordre <input name="departmentOrder" type="number" [(ngModel)]="departmentForm.sortOrder" /></label>
+            <div class="form-actions">
+              <button type="submit">Enregistrer</button>
               <button type="button" class="ghost" (click)="cancelDepartment()">Annuler</button>
-            }
-          </div>
-        </form>
+            </div>
+          </form>
+        }
         <div class="list">
           @for (department of departments(); track department.id) {
             <article>
@@ -272,14 +320,30 @@
             </article>
           }
         </div>
-      </div>
+      </section>
     </div>
   }
 
   @if (tab() === 'users') {
-    <div class="split">
-      @if (auth.isAdmin()) {
-        <form novalidate (ngSubmit)="saveUser()">
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>Utilisateurs &amp; accès</h2>
+          <p class="hint list-hint">
+            @if (auth.isAdmin()) {
+              Ajoutez un compte de démo ou ouvrez Accès pour limiter les applications.
+            } @else {
+              Sélectionnez un collaborateur, puis cochez uniquement les applications autorisées.
+            }
+          </p>
+        </div>
+        @if (auth.isAdmin() && !userFormOpen()) {
+          <button type="button" class="add-btn" (click)="startAddUser()">Ajouter un utilisateur</button>
+        }
+      </div>
+
+      @if (auth.isAdmin() && userFormOpen()) {
+        <form id="user-form" class="reveal wide" novalidate (ngSubmit)="saveUser()">
           <p class="bird-note">Les identités viennent de Bird. Ce formulaire sert à la démo locale et au paramétrage DSI.</p>
           <h2>{{ editingUserId ? 'Modifier un utilisateur' : 'Ajouter un utilisateur (démo)' }}</h2>
           <label>Prénom <input name="firstName" [(ngModel)]="userForm.firstName" /></label>
@@ -319,36 +383,58 @@
             <input type="checkbox" name="restrictedAccess" [(ngModel)]="userForm.restrictedAccess" />
             Limiter l’accès à certaines applications
           </label>
+          @if (userForm.restrictedAccess) {
+            <ng-container [ngTemplateOutlet]="accessPanel" />
+          } @else {
+            <p class="hint">Sans limitation, cet utilisateur voit toutes les applications du portail.</p>
+          }
           <div class="form-actions">
             <button type="submit">Enregistrer</button>
-            @if (editingUserId) {
-              <button type="button" class="ghost" (click)="cancelUser()">Annuler</button>
-            }
+            <button type="button" class="ghost" (click)="cancelUser()">Annuler</button>
           </div>
         </form>
-      } @else {
-        <aside class="coach">
-          @if (selectedUser(); as member) {
+      } @else if (!auth.isAdmin()) {
+        @if (selectedUser(); as member) {
+          <aside id="user-form" class="coach reveal wide">
             <h2>Accès de {{ member.firstName }} {{ member.lastName }}</h2>
             <p>{{ member.email }} · {{ member.department }}</p>
             <label class="check">
               <input type="checkbox" name="restrictedAccess" [(ngModel)]="userForm.restrictedAccess" />
               Limiter l’accès à certaines applications
             </label>
+            @if (userForm.restrictedAccess) {
+              <ng-container [ngTemplateOutlet]="accessPanel" />
+            } @else {
+              <p class="hint">Sans limitation, cet utilisateur voit toutes les applications du portail.</p>
+            }
             <div class="form-actions">
               <button type="button" (click)="saveUser()">Enregistrer les accès</button>
               <button type="button" class="ghost" (click)="cancelUser()">Annuler</button>
             </div>
-          } @else {
-            <h2>Équipe déjà dans Bird</h2>
-            <p>Sélectionnez un collaborateur à droite, puis cochez uniquement les applications autorisées. Vous ne créez pas de compte ici.</p>
-          }
-        </aside>
+          </aside>
+        }
       }
 
+      <div class="toolbar">
+        <input
+          type="search"
+          name="userQuery"
+          [ngModel]="userQuery()"
+          (ngModelChange)="onUserQuery($event)"
+          placeholder="Rechercher un utilisateur, un email, une direction..."
+          autocomplete="off"
+        />
+        <p class="result-count">
+          {{ filteredUsers().length }} utilisateur{{ filteredUsers().length > 1 ? 's' : '' }}
+        </p>
+      </div>
+
       <div class="list">
-        @for (user of users(); track user.id) {
-          <article>
+        @if (pagedUsers().length === 0) {
+          <p class="empty-list">Aucun utilisateur ne correspond à votre recherche.</p>
+        }
+        @for (user of pagedUsers(); track user.id) {
+          <article [class.editing]="editingUserId === user.id">
             <div>
               <strong>{{ user.firstName }} {{ user.lastName }}</strong>
               <small>
@@ -368,11 +454,12 @@
             </div>
           </article>
         }
+        <app-pager [page]="userCurrentPage()" [pages]="userPageCount()" (go)="userPage.set($event)" />
       </div>
-    </div>
+    </section>
 
-    @if (editingUserId && userForm.restrictedAccess) {
-      <section class="access-panel">
+    <ng-template #accessPanel>
+      <section class="access-panel nested">
         <div class="access-head">
           <div>
             <h2>Applications et documents autorisés</h2>
@@ -383,7 +470,17 @@
             <button type="button" class="ghost" (click)="clearApps()">Tout retirer</button>
           </div>
         </div>
-        @for (group of appsByCategory(); track group[0]) {
+        <input
+          class="access-search"
+          type="search"
+          name="accessQuery"
+          [ngModel]="accessQuery()"
+          (ngModelChange)="accessQuery.set($event)"
+          (keydown.enter)="$event.preventDefault()"
+          placeholder="Filtrer les applications…"
+          autocomplete="off"
+        />
+        @for (group of visibleAccessGroups(); track group[0]) {
           <div class="access-group">
             <h3>{{ group[0] }}</h3>
             <div class="access-grid">
@@ -417,9 +514,10 @@
             </div>
           </div>
         }
+        @if (visibleAccessGroups().length === 0) {
+          <p class="hint">Aucune application ne correspond à ce filtre.</p>
+        }
       </section>
-    } @else if (editingUserId) {
-      <p class="hint">Sans limitation, cet utilisateur voit toutes les applications du portail.</p>
-    }
+    </ng-template>
   }
 </section>

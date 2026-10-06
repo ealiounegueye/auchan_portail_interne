@@ -27,7 +27,9 @@ export class AppDetail implements OnInit {
       {
         kind: 'documentation' as DocumentKind,
         name: 'Mode opératoire (MODOP)',
-        hint: 'Procédure métier : étapes, prérequis et incidents',
+        hint: item.documentationFileName
+          ? `Fichier importé : ${item.documentationFileName}`
+          : 'Document généré à partir de la fiche application',
         icon: 'book',
         externalUrl: item.documentationUrl,
         fileName: item.documentationFileName || null,
@@ -36,7 +38,9 @@ export class AppDetail implements OnInit {
       {
         kind: 'fiche-technique' as DocumentKind,
         name: 'Fiche technique',
-        hint: 'Architecture, prérequis et contacts techniques',
+        hint: item.technicalSheetFileName
+          ? `Fichier importé : ${item.technicalSheetFileName}`
+          : 'Document généré à partir de la fiche application',
         icon: 'receipt',
         externalUrl: item.technicalSheetUrl,
         fileName: item.technicalSheetFileName || null,
@@ -45,7 +49,9 @@ export class AppDetail implements OnInit {
       {
         kind: 'guide' as DocumentKind,
         name: 'Guide utilisateur',
-        hint: 'Parcours métier et bonnes pratiques',
+        hint: item.userGuideFileName
+          ? `Fichier importé : ${item.userGuideFileName}`
+          : 'Document généré à partir de la fiche application',
         icon: 'graduation',
         externalUrl: item.userGuideUrl,
         fileName: item.userGuideFileName || null,

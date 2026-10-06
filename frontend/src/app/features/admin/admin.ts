@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -18,10 +19,11 @@ import {
 } from '../../core/models';
 import { AuthService } from '../../core/auth.service';
 import { PortalService } from '../../core/portal.service';
+import { Pager } from '../../shared/pager';
 
 @Component({
   selector: 'app-admin',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, NgTemplateOutlet, Pager, RouterLink],
   templateUrl: './admin.html',
   styleUrl: './admin.scss'
 })
@@ -43,18 +45,28 @@ export class Admin implements OnInit {
   readonly documentUploading = signal(false);
   readonly documentAccept =
     '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.txt,.html,.htm,.png,.jpg,.jpeg,.webp,.gif';
+  readonly appQuery = signal('');
+  readonly userQuery = signal('');
+  readonly accessQuery = signal('');
+  readonly appPage = signal(1);
+  readonly userPage = signal(1);
+  readonly listPageSize = 8;
 
   appForm: ApplicationPayload = this.emptyApp();
   editingAppId: number | null = null;
+  readonly appFormOpen = signal(false);
   userForm: UserPayload = Admin.blankUser();
   editingUserId: number | null = null;
+  readonly userFormOpen = signal(false);
   categoryForm: CategoryPayload = this.emptyCategory();
   editingCategoryId: number | null = null;
+  readonly categoryFormOpen = signal(false);
   private categoryOrderSeq = 0;
   private appOrderSeq = 0;
   private pendingEditAppId: number | null = null;
   departmentForm: DepartmentPayload = this.emptyDepartment();
   editingDepartmentId: number | null = null;
+  readonly departmentFormOpen = signal(false);
 
   readonly managers = computed(() =>
     this.users().filter((user) => user.role === 'MANAGER' || user.role === 'ADMIN')
@@ -73,6 +85,58 @@ export class Admin implements OnInit {
     }
     return [...groups.entries()];
   });
+
+  readonly visibleAccessGroups = computed(() => {
+    const q = this.accessQuery().trim().toLowerCase();
+    if (!q) {
+      return this.appsByCategory();
+    }
+    return this.appsByCategory()
+      .map(([name, apps]) => [name, apps.filter((app) => app.name.toLowerCase().includes(q) || app.ownerDepartment.toLowerCase().includes(q))] as [string, BusinessApp[]])
+      .filter(([, apps]) => apps.length > 0);
+  });
+
+  readonly filteredApps = computed(() => {
+    const q = this.appQuery().trim().toLowerCase();
+    if (!q) {
+      return this.apps();
+    }
+    return this.apps().filter(
+      (app) =>
+        app.name.toLowerCase().includes(q) ||
+        app.category.name.toLowerCase().includes(q) ||
+        app.ownerDepartment.toLowerCase().includes(q)
+    );
+  });
+
+  readonly appPageCount = computed(() => Math.max(1, Math.ceil(this.filteredApps().length / this.listPageSize)));
+  readonly appCurrentPage = computed(() => Math.min(this.appPage(), this.appPageCount()));
+  readonly pagedApps = computed(() => this.slicePage(this.filteredApps(), this.appCurrentPage()));
+  readonly canReorderApps = computed(() => !this.appQuery().trim());
+
+  readonly filteredUsers = computed(() => {
+    const q = this.userQuery().trim().toLowerCase();
+    if (!q) {
+      return this.users();
+    }
+    return this.users().filter((user) => {
+      const haystack = [
+        user.firstName,
+        user.lastName,
+        user.email,
+        user.department,
+        this.roleLabels[user.role] || user.role,
+        user.managerName ?? ''
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(q);
+    });
+  });
+
+  readonly userPageCount = computed(() => Math.max(1, Math.ceil(this.filteredUsers().length / this.listPageSize)));
+  readonly userCurrentPage = computed(() => Math.min(this.userPage(), this.userPageCount()));
+  readonly pagedUsers = computed(() => this.slicePage(this.filteredUsers(), this.userCurrentPage()));
 
   constructor(
     private readonly portal: PortalService,
@@ -155,6 +219,20 @@ export class Admin implements OnInit {
     }));
   }
 
+  onAppQuery(value: string) {
+    this.appQuery.set(value);
+    this.appPage.set(1);
+  }
+
+  onUserQuery(value: string) {
+    this.userQuery.set(value);
+    this.userPage.set(1);
+  }
+
+  appIndex(app: BusinessApp) {
+    return this.apps().findIndex((item) => item.id === app.id);
+  }
+
   editApp(app: BusinessApp) {
     this.editingAppId = app.id;
     this.appForm = {
@@ -190,15 +268,19 @@ export class Admin implements OnInit {
       audience: app.audience ?? ''
     };
     this.resetLogoPreview();
-    queueMicrotask(() => document.getElementById('app-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    this.appFormOpen.set(true);
+    this.scrollTo('app-form');
+  }
+
+  startAddApp() {
+    this.resetAppForm();
+    this.appFormOpen.set(true);
+    this.scrollTo('app-form');
   }
 
   cancelApp() {
-    this.editingAppId = null;
-    this.appForm = this.emptyApp();
-    this.logoUploading.set(false);
-    this.documentUploading.set(false);
-    this.resetLogoPreview();
+    this.resetAppForm();
+    this.appFormOpen.set(false);
   }
 
   logoSrc() {
@@ -255,7 +337,7 @@ export class Admin implements OnInit {
       next: (response) => {
         this.appForm = { ...this.appForm, ...this.fileFields(kind, response.storedFile, response.originalName, response.contentType) };
         this.documentUploading.set(false);
-        this.flash('Fichier importé. Enregistrez l’application pour le conserver.');
+        this.flash('Fichier importé. Il remplace le document généré. Enregistrez l’application pour le conserver.');
       },
       error: (err) => {
         this.documentUploading.set(false);
@@ -300,6 +382,10 @@ export class Admin implements OnInit {
   }
 
   onAppDragStart(event: DragEvent, index: number) {
+    if (!this.canReorderApps() || index < 0) {
+      event.preventDefault();
+      return;
+    }
     const path = event.composedPath();
     if (path.some((node) => node instanceof HTMLElement && node.classList.contains('actions'))) {
       event.preventDefault();
@@ -408,11 +494,21 @@ export class Admin implements OnInit {
       icon: category.icon,
       color: category.color
     };
+    this.categoryFormOpen.set(true);
+    this.scrollTo('category-form');
+  }
+
+  startAddCategory() {
+    this.editingCategoryId = null;
+    this.categoryForm = this.emptyCategory();
+    this.categoryFormOpen.set(true);
+    this.scrollTo('category-form');
   }
 
   cancelCategory() {
     this.editingCategoryId = null;
     this.categoryForm = this.emptyCategory();
+    this.categoryFormOpen.set(false);
   }
 
   onCategoryDragStart(event: DragEvent, index: number) {
@@ -510,11 +606,21 @@ export class Admin implements OnInit {
       description: department.description ?? '',
       sortOrder: department.sortOrder
     };
+    this.departmentFormOpen.set(true);
+    this.scrollTo('department-form');
+  }
+
+  startAddDepartment() {
+    this.editingDepartmentId = null;
+    this.departmentForm = this.emptyDepartment();
+    this.departmentFormOpen.set(true);
+    this.scrollTo('department-form');
   }
 
   cancelDepartment() {
     this.editingDepartmentId = null;
     this.departmentForm = this.emptyDepartment();
+    this.departmentFormOpen.set(false);
   }
 
   saveDepartment() {
@@ -570,6 +676,17 @@ export class Admin implements OnInit {
       allowedApplicationIds: grants.map((grant) => grant.applicationId),
       applicationGrants: grants
     };
+    this.userFormOpen.set(true);
+    this.accessQuery.set('');
+    this.scrollTo('user-form');
+  }
+
+  startAddUser() {
+    this.editingUserId = null;
+    this.userForm = this.emptyUser();
+    this.userFormOpen.set(true);
+    this.accessQuery.set('');
+    this.scrollTo('user-form');
   }
 
   onRoleChange(role: Role) {
@@ -623,6 +740,8 @@ export class Admin implements OnInit {
   cancelUser() {
     this.editingUserId = null;
     this.userForm = this.emptyUser();
+    this.userFormOpen.set(false);
+    this.accessQuery.set('');
   }
 
   selectedUser(): User | undefined {
@@ -671,8 +790,7 @@ export class Admin implements OnInit {
     request.subscribe({
       next: () => {
         this.flash('Utilisateur et accès enregistrés');
-        this.userForm = this.emptyUser();
-        this.editingUserId = null;
+        this.cancelUser();
         this.reload();
       },
       error: (err) => this.flash(this.apiError(err, 'Enregistrement impossible'), true)
@@ -696,7 +814,7 @@ export class Admin implements OnInit {
       link.click();
     }
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    this.flash(`Document généré : ${filename}`);
+    this.flash(`Document : ${filename}`);
   }
 
   private filenameFrom(header: string | null, fallback: string) {
@@ -727,6 +845,23 @@ export class Admin implements OnInit {
   private normalizeColor(value: string) {
     const color = (value || '#C81E1E').trim();
     return /^#?[0-9a-fA-F]{6}$/.test(color) ? (color.startsWith('#') ? color : `#${color}`) : '#C81E1E';
+  }
+
+  private slicePage<T>(list: T[], page: number) {
+    const start = (page - 1) * this.listPageSize;
+    return list.slice(start, start + this.listPageSize);
+  }
+
+  private resetAppForm() {
+    this.editingAppId = null;
+    this.appForm = this.emptyApp();
+    this.logoUploading.set(false);
+    this.documentUploading.set(false);
+    this.resetLogoPreview();
+  }
+
+  private scrollTo(id: string) {
+    queueMicrotask(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   }
 
   private emptyApp(): ApplicationPayload {

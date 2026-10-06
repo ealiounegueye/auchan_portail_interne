@@ -56,12 +56,12 @@ public class ApplicationController {
             Authentication authentication
     ) {
         GeneratedDocument document = applicationService.exportDocument(id, kind, format, authentication.getName());
-        boolean inline = "html".equalsIgnoreCase(format);
+        boolean inline = document.contentType() != null && document.contentType().startsWith("text/html");
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType(document.contentType()));
         headers.setContentDisposition(
                 ContentDisposition.builder(inline ? "inline" : "attachment")
-                        .filename(document.filename())
+                        .filename(document.filename(), StandardCharsets.UTF_8)
                         .build()
         );
         return ResponseEntity.ok().headers(headers).body(document.content());

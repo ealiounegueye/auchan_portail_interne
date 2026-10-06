@@ -1,5 +1,6 @@
 package sn.auchan.portail.service;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +91,10 @@ public class ApplicationService {
         if (!canViewDocument(user, id, kind)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vous n'avez pas accès à ce document");
         }
+        GeneratedDocument uploaded = uploadedAsGenerated(app, kind);
+        if (uploaded != null) {
+            return uploaded;
+        }
         return documents.generate(app, kind, format);
     }
 
@@ -100,9 +105,33 @@ public class ApplicationService {
         if (!canViewDocument(user, id, kind)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Vous n'avez pas accès à ce document");
         }
+        StoredDocumentFile file = loadUploaded(app, kind);
+        if (file == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aucun fichier n’a été importé pour ce document");
+        }
+        return file;
+    }
+
+    private GeneratedDocument uploadedAsGenerated(BusinessApp app, String kind) {
+        StoredDocumentFile file = loadUploaded(app, kind);
+        if (file == null) {
+            return null;
+        }
+        try {
+            return new GeneratedDocument(
+                    file.resource().getContentAsByteArray(),
+                    file.contentType(),
+                    file.originalName()
+            );
+        } catch (IOException exception) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Impossible de lire le fichier importé");
+        }
+    }
+
+    private StoredDocumentFile loadUploaded(BusinessApp app, String kind) {
         String storedFile = storedFileOf(app, kind);
         if (storedFile == null || storedFile.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Aucun fichier n’a été importé pour ce document");
+            return null;
         }
         String originalName = originalNameOf(app, kind);
         String contentType = contentTypeOf(app, kind);

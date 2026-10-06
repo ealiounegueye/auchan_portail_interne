@@ -72,6 +72,86 @@ form button {
   align-items: start;
 }
 
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-head h2 {
+  margin: 0 0 4px;
+}
+
+.add-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-weight: 700;
+  background: var(--auchan-red);
+  color: #fff;
+  white-space: nowrap;
+}
+
+form.reveal,
+.coach.reveal {
+  width: 100%;
+  max-width: 720px;
+  margin-bottom: 20px;
+}
+
+form.reveal.wide,
+.coach.reveal.wide {
+  max-width: none;
+}
+
+form.reveal.wide > label,
+form.reveal.wide > .bird-note,
+form.reveal.wide > h2,
+form.reveal.wide > .hint,
+.coach.reveal.wide > label,
+.coach.reveal.wide > p,
+.coach.reveal.wide > h2 {
+  max-width: 720px;
+}
+
+form button.ghost {
+  background: #fff;
+  color: var(--ink);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.toolbar input {
+  width: min(420px, 100%);
+  margin-top: 0;
+}
+
+.result-count {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.empty-list {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 24px 18px;
+  color: var(--muted);
+  box-shadow: var(--shadow);
+}
+
+.list article.editing {
+  outline: 2px solid var(--auchan-red);
+}
+
 .catalog-grid {
   display: grid;
   gap: 28px;
@@ -81,15 +161,6 @@ form button {
   .catalog-grid {
     grid-template-columns: 1fr 1fr;
     align-items: start;
-  }
-
-  .catalog-grid .split {
-    display: block;
-  }
-
-  .catalog-grid form {
-    width: 100%;
-    margin-bottom: 16px;
   }
 }
 
@@ -177,11 +248,12 @@ form button {
   flex-shrink: 0;
 }
 
-.drag-handle span {
-  display: block;
-  height: 2px;
-  background: #c8c8c8;
-  border-radius: 2px;
+.drag-handle.off {
+  opacity: 0.25;
+}
+
+.list article.sortable[draggable='false'] {
+  cursor: default;
 }
 
 .item-body {
@@ -363,12 +435,13 @@ small {
   color: var(--auchan-green-dark);
 }
 
-.access-panel {
-  margin-top: 20px;
-  background: #fff;
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 24px;
+.access-panel.nested {
+  margin: 8px 0 16px;
+  padding: 16px 0 0;
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  border-top: 1px solid var(--line);
 }
 
 .access-head {
@@ -389,8 +462,9 @@ small {
   color: var(--muted);
 }
 
-.access-group + .access-group {
-  margin-top: 18px;
+.access-search {
+  width: min(420px, 100%);
+  margin: 0 0 16px;
 }
 
 .access-grid {
@@ -441,14 +515,21 @@ small {
 
 @media (max-width: 860px) {
   .split,
-  .head {
+  .head,
+  .section-head {
     display: block;
   }
 
   form,
-  .coach {
+  .coach,
+  form.reveal,
+  .coach.reveal {
     width: 100%;
     margin-bottom: 16px;
+  }
+
+  .add-btn {
+    margin-top: 12px;
   }
 
   .access-head {

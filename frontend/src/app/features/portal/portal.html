@@ -19,14 +19,14 @@
 
 <section class="layout">
   <aside>
-    <button type="button" [class.active]="selectedCategory() === null" (click)="selectCategory(null)">Toutes</button>
+    <button type="button" [class.active]="selectedCategory() === null && !onlyFavorites()" (click)="selectCategory(null)">Toutes</button>
     @for (category of categories(); track category.id) {
-      <button type="button" [class.active]="selectedCategory() === category.id" (click)="selectCategory(category.id)">
+      <button type="button" [class.active]="selectedCategory() === category.id && !onlyFavorites()" (click)="selectCategory(category.id)">
         <span class="dot" [style.background]="category.color"></span>
         {{ category.name }}
       </button>
     }
-    <button type="button" [class.active]="onlyFavorites()" (click)="onlyFavorites.set(!onlyFavorites())">
+    <button type="button" [class.active]="onlyFavorites()" (click)="showFavorites()">
       Mes favoris
     </button>
   </aside>
@@ -34,9 +34,10 @@
   <div>
     @if (!loading() && catalog().length > 0) {
       <p class="result-count">
-        {{ visibleApps().length }} application{{ visibleApps().length > 1 ? 's' : '' }}
-        @if (selectedCategory() || onlyFavorites() || query().trim()) {
-          sur {{ catalog().length }}
+        @if (visibleApps().length === 0) {
+          0 application
+        } @else {
+          {{ rangeStart() }}–{{ rangeEnd() }} sur {{ visibleApps().length }} application{{ visibleApps().length > 1 ? 's' : '' }}
         }
       </p>
     }
@@ -46,7 +47,7 @@
       <p class="empty">{{ emptyMessage() }}</p>
     } @else {
       <div class="grid">
-        @for (app of visibleApps(); track app.id) {
+        @for (app of pagedApps(); track app.id) {
           <article class="card" [class.featured]="app.featured">
             <div class="top">
               <a
@@ -76,6 +77,7 @@
           </article>
         }
       </div>
+      <app-pager [page]="currentPage()" [pages]="pageCount()" (go)="page.set($event)" />
     }
   </div>
 </section>

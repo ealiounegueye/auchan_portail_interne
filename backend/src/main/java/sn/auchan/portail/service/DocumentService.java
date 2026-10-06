@@ -172,14 +172,21 @@ public class DocumentService {
                         """
                         <h2>Présentation</h2>
                         <p>%s</p>
-                        <p><strong>Aucun mode opératoire n’a encore été saisi.</strong> La DSI ou le métier doit rédiger le MODOP dans l’administration du portail (fiche application → Mode opératoire). Une fois enregistré, ce document HTML/PDF reprendra les étapes réelles.</p>
-                        <h2>En attendant</h2>
+                        <h2>Mode opératoire</h2>
                         <ul>
-                          <li>Ouvrir l’application depuis le portail interne.</li>
-                          <li>Ne jamais partager vos identifiants Bird.</li>
-                          <li>Signaler tout incident au Service Desk DSI.</li>
+                          <li>Ouvrir l’application depuis le portail interne Auchan.</li>
+                          <li>Se connecter avec le compte Bird du collaborateur.</li>
+                          <li>Réaliser l’action métier prévue, puis quitter proprement la session.</li>
                         </ul>
-                        """.formatted(fmt(blank(app.getLongDescription() != null ? app.getLongDescription() : app.getDescription())))
+                        <h2>Incidents</h2>
+                        <ul>
+                          <li>Ne jamais partager vos identifiants.</li>
+                          <li>Signaler tout incident au Service Desk DSI (%s).</li>
+                        </ul>
+                        """.formatted(
+                                fmt(blank(app.getLongDescription() != null ? app.getLongDescription() : app.getDescription())),
+                                fmt(blank(app.getSupportContact()))
+                        )
                 );
                 case FICHE_TECHNIQUE -> customOrDefault(
                         app.getTechnicalSheetContent(),

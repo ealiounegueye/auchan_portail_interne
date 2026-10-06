@@ -75,10 +75,11 @@
             <strong>{{ resource.name }}</strong>
             <small>{{ resource.hint }}</small>
             <span class="doc-actions">
-              <button type="button" (click)="download(resource.kind, 'html')">HTML</button>
-              <button type="button" class="primary" (click)="download(resource.kind, 'pdf')">PDF</button>
               @if (resource.fileName) {
-                <button type="button" class="file" (click)="downloadFile(resource.kind)">{{ resource.fileName }}</button>
+                <button type="button" class="file" (click)="downloadFile(resource.kind)">Télécharger {{ resource.fileName }}</button>
+              } @else {
+                <button type="button" (click)="download(resource.kind, 'html')">HTML</button>
+                <button type="button" class="primary" (click)="download(resource.kind, 'pdf')">PDF</button>
               }
               @if (resource.externalUrl) {
                 <a [href]="resource.externalUrl" target="_blank" rel="noopener">Lien externe</a>
